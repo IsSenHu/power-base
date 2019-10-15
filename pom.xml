@@ -9,11 +9,14 @@
     <modules>
         <module>power-interface</module>
         <module>power-apollo</module>
+        <module>power-security</module>
+        <module>power-user</module>
     </modules>
     <name>power-base</name>
     <description>base</description>
 
     <properties>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>1.8</java.version>
     </properties>
 
