@@ -39,4 +39,14 @@ public interface UserManager {
      * @return 是否修改成功
      */
     boolean changeLockState(String token, boolean isAccountNonLocked);
+
+    /**
+     * 记录用户的登录渠道所处的状态
+     *
+     * @param token    Token
+     * @param channel  渠道
+     * @param isOnline 是否在线
+     * @return 是否记录成功
+     */
+    boolean recordLoginChannel(String token, String channel, boolean isOnline);
 }
