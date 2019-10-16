@@ -35,7 +35,6 @@ public class RedisUserManagerImpl implements UserManager {
     public boolean saveUser(String token, UserLoginInfo userLoginInfo) {
         try {
             String expiration = ConfigUtils.getProperty(AppProperties.Security.EXPIRATION, "60");
-            HashOperations<String, String, String> hash = redisTemplate.opsForHash();
             redisTemplate.executePipelined((RedisCallback<Object>) redisConnection -> {
                 Map<byte[], byte[]> values = new HashMap<>(3);
                 values.put(stringToByteArr(USER_ID), stringToByteArr(userLoginInfo.getUserId().toString()));

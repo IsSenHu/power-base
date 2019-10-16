@@ -19,6 +19,12 @@
         </dependency>
 
         <dependency>
+            <groupId>redis.clients</groupId>
+            <artifactId>jedis</artifactId>
+            <version>3.1.0</version>
+        </dependency>
+
+        <dependency>
             <groupId>com.cdsen</groupId>
             <artifactId>power-apollo</artifactId>
             <version>0.0.1-SNAPSHOT</version>

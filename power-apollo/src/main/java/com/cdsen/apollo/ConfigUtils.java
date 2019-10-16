@@ -15,6 +15,11 @@ public class ConfigUtils {
         return config.getProperty(key, defaultValue);
     }
 
+    public static String getProperty(String namespace, String key, String defaultValue) {
+        Config config = ConfigService.getConfig(namespace);
+        return config.getProperty(key, defaultValue);
+    }
+
     public static void addChangeListener(ConfigChangeListener listener) {
         ConfigService.getAppConfig().addChangeListener(listener);
     }
