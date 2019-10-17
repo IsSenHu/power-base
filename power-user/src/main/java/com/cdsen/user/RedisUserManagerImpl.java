@@ -9,6 +9,7 @@ import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.util.CollectionUtils;
 
 import java.nio.charset.StandardCharsets;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Objects;
@@ -23,7 +24,10 @@ public class RedisUserManagerImpl implements UserManager {
 
     private static final String USER_ID = "userId";
     private static final String USERNAME = "username";
+    private static final String PASSWORD = "password";
     private static final String IS_ACCOUNT_NON_LOCKED = "isAccountNonLocked";
+    private static final String IS_ENABLED = "isEnabled";
+    private static final String ROLES = "roles";
 
     private final StringRedisTemplate redisTemplate;
 
@@ -36,10 +40,14 @@ public class RedisUserManagerImpl implements UserManager {
         try {
             String expiration = ConfigUtils.getProperty(AppProperties.Security.EXPIRATION, "60");
             redisTemplate.executePipelined((RedisCallback<Object>) redisConnection -> {
-                Map<byte[], byte[]> values = new HashMap<>(3);
+                Map<byte[], byte[]> values = new HashMap<>(4);
                 values.put(stringToByteArr(USER_ID), stringToByteArr(userLoginInfo.getUserId().toString()));
                 values.put(stringToByteArr(USERNAME), stringToByteArr(userLoginInfo.getUsername()));
+                values.put(stringToByteArr(PASSWORD), stringToByteArr(userLoginInfo.getPassword()));
                 values.put(stringToByteArr(IS_ACCOUNT_NON_LOCKED), stringToByteArr(String.valueOf(userLoginInfo.isAccountNonLocked())));
+                values.put(stringToByteArr(IS_ENABLED), stringToByteArr(String.valueOf(userLoginInfo.isEnabled())));
+                String rolesStr = CollectionUtils.isEmpty(userLoginInfo.getRoles()) ? "" : String.join(",", userLoginInfo.getRoles());
+                values.put(stringToByteArr(ROLES), stringToByteArr(rolesStr));
                 byte[] key = token.getBytes(StandardCharsets.UTF_8);
                 redisConnection.hMSet(key, values);
                 redisConnection.expire(key, TimeUnit.MINUTES.toSeconds(Long.parseLong(expiration)));
@@ -64,7 +72,10 @@ public class RedisUserManagerImpl implements UserManager {
             return CollectionUtils.isEmpty(entries) ? null : new UserLoginInfo(
                     Long.parseLong(entries.get(USER_ID)),
                     entries.get(USERNAME),
-                    Boolean.parseBoolean(entries.get(IS_ACCOUNT_NON_LOCKED))
+                    entries.get(PASSWORD),
+                    Boolean.parseBoolean(entries.get(IS_ACCOUNT_NON_LOCKED)),
+                    Boolean.parseBoolean(entries.get(IS_ENABLED)),
+                    Arrays.asList(entries.get(ROLES).split(","))
             );
         } catch (Exception e) {
             log.error("getLoginInfo error:", e);

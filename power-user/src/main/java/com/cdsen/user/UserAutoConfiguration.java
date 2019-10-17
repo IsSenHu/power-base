@@ -9,6 +9,8 @@ import org.springframework.data.redis.connection.jedis.JedisConnectionFactory;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import redis.clients.jedis.JedisPoolConfig;
 
+import java.time.Duration;
+
 /**
  * @author HuSen
  * create on 2019/10/16 11:34
@@ -19,7 +21,6 @@ public class UserAutoConfiguration {
 
     @Bean
     public JedisConnectionFactory jedisConnectionFactory() {
-        JedisClientConfiguration.JedisClientConfigurationBuilder builder = JedisClientConfiguration.builder();
         JedisPoolConfig poolConfig  = new JedisPoolConfig();
 
         // 连接耗尽时是否阻塞，false报异常，true阻塞直到超时，默认true
@@ -91,7 +92,9 @@ public class UserAutoConfiguration {
         poolConfig.setTestOnCreate(Boolean.parseBoolean(testOnCreate));
 
         // 连接池Client Builder
-        JedisClientConfiguration.JedisPoolingClientConfigurationBuilder poolingClientConfigurationBuilder = JedisClientConfiguration.builder().usePooling().poolConfig(poolConfig);
+        String readTimeOut = ConfigUtils.getProperty(NAMESPACE, "readTimeOut", "2000");
+        JedisClientConfiguration.JedisPoolingClientConfigurationBuilder poolingClientConfigurationBuilder
+                = JedisClientConfiguration.builder().readTimeout(Duration.ofMillis(Long.parseLong(readTimeOut))).usePooling().poolConfig(poolConfig);
 
         // ****************创建单节点配置****************
         String standaloneHostName = ConfigUtils.getProperty(NAMESPACE, "standaloneHostName", "127.0.0.1");

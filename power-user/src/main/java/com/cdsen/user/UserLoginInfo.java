@@ -5,6 +5,7 @@ import lombok.Getter;
 import lombok.Setter;
 
 import java.io.Serializable;
+import java.util.List;
 
 /**
  * @author HuSen
@@ -17,5 +18,8 @@ public class UserLoginInfo implements Serializable {
 
     private Long userId;
     private String username;
+    private String password;
     private boolean isAccountNonLocked;
+    private boolean isEnabled;
+    private List<String> roles;
 }
