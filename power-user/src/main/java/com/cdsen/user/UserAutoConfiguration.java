@@ -93,8 +93,7 @@ public class UserAutoConfiguration {
 
         // 连接池Client Builder
         String readTimeOut = ConfigUtils.getProperty(NAMESPACE, "readTimeOut", "2000");
-        JedisClientConfiguration.JedisPoolingClientConfigurationBuilder poolingClientConfigurationBuilder
-                = JedisClientConfiguration.builder().readTimeout(Duration.ofMillis(Long.parseLong(readTimeOut))).usePooling().poolConfig(poolConfig);
+        JedisClientConfiguration.JedisClientConfigurationBuilder jedisClientConfigurationBuilder = JedisClientConfiguration.builder().readTimeout(Duration.ofMillis(Long.parseLong(readTimeOut)));
 
         // ****************创建单节点配置****************
         String standaloneHostName = ConfigUtils.getProperty(NAMESPACE, "standaloneHostName", "127.0.0.1");
@@ -110,7 +109,7 @@ public class UserAutoConfiguration {
         standaloneConfiguration.setPassword(standalonePassword);
 
         // 创建连接工厂
-        return new JedisConnectionFactory(standaloneConfiguration, poolingClientConfigurationBuilder.build());
+        return new JedisConnectionFactory(standaloneConfiguration, jedisClientConfigurationBuilder.build());
     }
 
     @Bean(name = "stringRedisTemplate")
