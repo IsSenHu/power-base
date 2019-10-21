@@ -17,6 +17,7 @@
         <module>power-apollo</module>
         <module>power-security</module>
         <module>power-user</module>
+        <module>power-rabbit</module>
     </modules>
     <name>power-base</name>
     <description>base</description>

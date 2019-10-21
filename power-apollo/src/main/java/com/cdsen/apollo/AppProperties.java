@@ -16,4 +16,14 @@ public class AppProperties {
 
         public static final String HEADER = "com.cdsen.security.header";
     }
+
+    public static class Rabbitmq {
+        public static final String RABBITMQ_NAMESPACE = "rabbitmq";
+        public static final String DIRECT_QUEUE_POWER = "directQueuePower";
+        public static final String DIRECT_EXCHANGE_POWER = "directExchangePower";
+        public static final String DIRECT_KEY_POWER = "directKeyPower";
+
+        public static final String DIRECT_QUEUE_CREATE_CONSUMPTION = "directQueueCreateConsumption";
+        public static final String DIRECT_KEY_CREATE_CONSUMPTION = "directKeyCreateConsumption";
+    }
 }
