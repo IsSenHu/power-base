@@ -1,7 +1,9 @@
 package com.cdsen.user;
 
 import com.cdsen.apollo.ConfigUtils;
+import com.ctrip.framework.apollo.spring.annotation.EnableApolloConfig;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.boot.context.properties.EnableConfigurationProperties;
 import org.springframework.context.annotation.Bean;
 import org.springframework.data.redis.connection.RedisStandaloneConfiguration;
 import org.springframework.data.redis.connection.jedis.JedisClientConfiguration;
@@ -15,9 +17,17 @@ import java.time.Duration;
  * @author HuSen
  * create on 2019/10/16 11:34
  */
+@EnableApolloConfig
+@EnableConfigurationProperties(SecurityConfig.class)
 public class UserAutoConfiguration {
 
     private static final String NAMESPACE = "POWER.USER";
+
+    public UserAutoConfiguration(SecurityConfig securityConfig) {
+        this.securityConfig = securityConfig;
+    }
+
+    private final SecurityConfig securityConfig;
 
     @Bean
     public JedisConnectionFactory jedisConnectionFactory() {
@@ -124,6 +134,6 @@ public class UserAutoConfiguration {
 
     @Bean
     public UserManager userManager(StringRedisTemplate redisTemplate) {
-        return new RedisUserManagerImpl(redisTemplate);
+        return new RedisUserManagerImpl(redisTemplate, securityConfig);
     }
 }

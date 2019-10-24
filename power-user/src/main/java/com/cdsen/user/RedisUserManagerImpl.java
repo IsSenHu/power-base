@@ -1,7 +1,5 @@
 package com.cdsen.user;
 
-import com.cdsen.apollo.AppProperties;
-import com.cdsen.apollo.ConfigUtils;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.redis.core.HashOperations;
 import org.springframework.data.redis.core.RedisCallback;
@@ -30,15 +28,16 @@ public class RedisUserManagerImpl implements UserManager {
     private static final String ROLES = "roles";
 
     private final StringRedisTemplate redisTemplate;
+    private final SecurityConfig securityConfig;
 
-    RedisUserManagerImpl(StringRedisTemplate redisTemplate) {
+    RedisUserManagerImpl(StringRedisTemplate redisTemplate, SecurityConfig securityConfig) {
         this.redisTemplate = redisTemplate;
+        this.securityConfig = securityConfig;
     }
 
     @Override
     public boolean saveUser(String token, UserLoginInfo userLoginInfo) {
         try {
-            String expiration = ConfigUtils.getProperty(AppProperties.Security.EXPIRATION, "60");
             redisTemplate.executePipelined((RedisCallback<Object>) redisConnection -> {
                 Map<byte[], byte[]> values = new HashMap<>(4);
                 values.put(stringToByteArr(USER_ID), stringToByteArr(userLoginInfo.getUserId().toString()));
@@ -50,7 +49,7 @@ public class RedisUserManagerImpl implements UserManager {
                 values.put(stringToByteArr(ROLES), stringToByteArr(rolesStr));
                 byte[] key = token.getBytes(StandardCharsets.UTF_8);
                 redisConnection.hMSet(key, values);
-                redisConnection.expire(key, TimeUnit.MINUTES.toSeconds(Long.parseLong(expiration)));
+                redisConnection.expire(key, TimeUnit.MINUTES.toSeconds(securityConfig.getExpiration()));
                 return null;
             });
             return true;
