@@ -13,4 +13,5 @@ import java.math.BigDecimal;
 public class ConsumptionItemCreateDTO implements Serializable {
     private BigDecimal money;
     private String description;
+    private Integer type;
 }
