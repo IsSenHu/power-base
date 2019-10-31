@@ -14,10 +14,9 @@
     <version>0.0.1-SNAPSHOT</version>
 
     <dependencies>
-
         <dependency>
-            <groupId>com.sun.mail</groupId>
-            <artifactId>javax.mail</artifactId>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-mail</artifactId>
         </dependency>
     </dependencies>
 </project>

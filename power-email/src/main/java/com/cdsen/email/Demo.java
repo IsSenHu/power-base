@@ -39,12 +39,14 @@ public class Demo {
             calendar.add(Calendar.DATE, -10);
             Date time = calendar.getTime();
             SentDateTerm sentDateTerm = new SentDateTerm(ComparisonTerm.GT, time);
-            SearchTerm address = new SubjectTerm("MU Report");
+            SearchTerm address = new SubjectTerm(MimeUtility.encodeText("关于更换工资卡的通知"));
             SearchTerm comparisonAndTerm = new AndTerm(address, sentDateTerm);
             Message[] messages = folder.getMessages();
             for (Message message : messages) {
                 MimeMessage msg = (MimeMessage) message;
-                System.out.println(MimeUtility.decodeText(msg.getSubject()));
+//                System.out.println(MimeUtility.decodeText(msg.getMessageID()));
+                System.out.println(msg.getMessageID());
+                System.out.println("=======================");
             }
             folder.close();
             store.close();
