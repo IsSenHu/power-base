@@ -1,15 +1,6 @@
 package com.cdsen.email;
 
-import javax.mail.Folder;
-import javax.mail.Message;
-import javax.mail.Session;
-import javax.mail.Store;
 import javax.mail.internet.MimeMessage;
-import javax.mail.internet.MimeUtility;
-import javax.mail.search.*;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.Properties;
 
 /**
  * @author HuSen
@@ -22,36 +13,18 @@ public class Demo {
         String username = "husen@archly.cc";
         String password = "521428Slyt";
 
-        Properties properties = new Properties();
-        Session session = Session.getDefaultInstance(properties);
-        session.setDebug(true);
-
-        try {
-            Store store = session.getStore("imap");
-            store.connect(host, username, password);
-
-            Folder folder = store.getFolder("INBOX");
-            if (folder == null) {
-                System.out.println("获取邮箱文件信息为空");
+        EmailUtils.getMessages(host, username, password, mimeMessages -> {
+            for (MimeMessage message : mimeMessages) {
+                try {
+                    System.out.println(EmailUtils.getSubject(message));
+                    System.out.println(EmailUtils.isContainAttach(message));
+                    System.out.println(EmailUtils.getFrom(message));
+                    System.out.println(EmailUtils.getMailAddress(message, "to"));
+                    System.out.println(EmailUtils.getSentDate(message));
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
             }
-            folder.open(Folder.READ_WRITE);
-            Calendar calendar = Calendar.getInstance();
-            calendar.add(Calendar.DATE, -10);
-            Date time = calendar.getTime();
-            SentDateTerm sentDateTerm = new SentDateTerm(ComparisonTerm.GT, time);
-            SearchTerm address = new SubjectTerm(MimeUtility.encodeText("关于更换工资卡的通知"));
-            SearchTerm comparisonAndTerm = new AndTerm(address, sentDateTerm);
-            Message[] messages = folder.getMessages();
-            for (Message message : messages) {
-                MimeMessage msg = (MimeMessage) message;
-//                System.out.println(MimeUtility.decodeText(msg.getMessageID()));
-                System.out.println(msg.getMessageID());
-                System.out.println("=======================");
-            }
-            folder.close();
-            store.close();
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
+        });
     }
 }
