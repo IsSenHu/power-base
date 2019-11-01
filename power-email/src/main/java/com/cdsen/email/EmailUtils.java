@@ -1,15 +1,18 @@
 package com.cdsen.email;
 
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.util.Assert;
 
 import javax.mail.*;
 import javax.mail.internet.InternetAddress;
 import javax.mail.internet.MimeMessage;
 import javax.mail.internet.MimeUtility;
+import java.io.InputStream;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Properties;
+import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -29,7 +32,6 @@ public class EmailUtils {
      * @param host     Host
      * @param username 用户名
      * @param password 密码
-     * @return 所有的邮件
      */
     public static void getMessages(String host, String username, String password, Consumer<List<MimeMessage>> consumer) {
         Properties properties = new Properties();
@@ -42,29 +44,24 @@ public class EmailUtils {
             store = session.getStore(IMAP);
             store.connect(host, username, password);
             folder = store.getFolder(INBOX);
-            if (folder == null) {
-                throw new IllegalStateException();
-            }
-            folder.open(Folder.READ_WRITE);
+            Assert.notNull(folder, "folder is null");
+
+            folder.open(Folder.READ_ONLY);
             Message[] messages = folder.getMessages();
             List<MimeMessage> collect = Arrays.stream(messages).map(m -> (MimeMessage) m).collect(Collectors.toList());
             consumer.accept(collect);
         } catch (Exception e) {
             log.error("获取所有邮件失败:", e);
         } finally {
-            if (folder != null) {
-                try {
+            try {
+                if (folder != null) {
                     folder.close();
-                } catch (MessagingException e) {
-                    log.error("close folder error:", e);
                 }
-            }
-            if (store != null) {
-                try {
+                if (store != null) {
                     store.close();
-                } catch (MessagingException e) {
-                    log.error("close store error:", e);
                 }
+            } catch (MessagingException e) {
+                log.error("close resource error:", e);
             }
         }
     }
@@ -119,7 +116,7 @@ public class EmailUtils {
                 break;
             }
             default:
-                throw new Exception();
+                throw new IllegalArgumentException("error type");
         }
         if (addresses != null) {
             for (InternetAddress address : addresses) {
@@ -144,6 +141,106 @@ public class EmailUtils {
      */
     public static Date getSentDate(MimeMessage message) throws Exception {
         return message.getSentDate();
+    }
+
+    /**
+     * 解析邮件
+     *
+     * @param part Part
+     * @throws Exception Exception
+     */
+    public static void getMailContent(Part part, StringBuilder builder) throws Exception {
+        String contentType = part.getContentType();
+        boolean containsName = contentType.contains("name");
+        if (part.isMimeType("text/plain") && !containsName) {
+            builder.append(part.getContent());
+        } else if (part.isMimeType("text/html") && !containsName) {
+            builder.append(part.getContent());
+        } else if (part.isMimeType("multipart/*")) {
+            Multipart multipart = (Multipart) part.getContent();
+            int count = multipart.getCount();
+            for (int i = 0; i < count; i++) {
+                getMailContent(multipart.getBodyPart(i), builder);
+            }
+        } else if (part.isMimeType("message/rfc822")) {
+            getMailContent((Part) part.getContent(), builder);
+        }
+    }
+
+    /**
+     * 判断邮件是否需要回执
+     *
+     * @param message MimeMessage
+     * @return 是否
+     * @throws Exception Exception
+     */
+    public static boolean getReplySign(MimeMessage message) throws Exception {
+        boolean replySign = false;
+        String[] needReply = message.getHeader("Disposition-Notification-To");
+        if (needReply != null) {
+            replySign = true;
+        }
+        return replySign;
+    }
+
+    /**
+     * 获得此邮件的Message-ID
+     *
+     * @param message MimeMessage
+     * @return Message-ID
+     * @throws Exception Exception
+     */
+    public static String getMessageId(MimeMessage message) throws Exception {
+        return message.getMessageID();
+    }
+
+    /**
+     * 判断此邮件是否未读
+     *
+     * @param message MimeMessage
+     * @return 是否
+     * @throws Exception Exception
+     */
+    public static boolean isNew(MimeMessage message) throws Exception {
+        boolean isNew = false;
+        Flags flags = message.getFlags();
+        Flags.Flag[] flag = flags.getSystemFlags();
+        for (Flags.Flag value : flag) {
+            if (value == Flags.Flag.SEEN) {
+                isNew = true;
+                break;
+            }
+        }
+        return isNew;
+    }
+
+    /**
+     * 保存附件
+     *
+     * @param part Part
+     * @throws Exception Exception
+     */
+    public static void saveAttachment(Part part, BiConsumer<String, InputStream> saver) throws Exception {
+        String fileName;
+        if (part.isMimeType("multipart/*")) {
+            Multipart multipart = (Multipart) part.getContent();
+            for (int i = 0; i < multipart.getCount(); i++) {
+                BodyPart bodyPart = multipart.getBodyPart(i);
+                String disposition = bodyPart.getDisposition();
+                if (disposition != null && (disposition.equals(Part.ATTACHMENT) || disposition.equals(Part.INLINE))) {
+                    fileName = MimeUtility.decodeText(bodyPart.getFileName());
+                    saver.accept(fileName, bodyPart.getInputStream());
+                } else if (bodyPart.isMimeType("multipart/*")) {
+                    saveAttachment(bodyPart, saver);
+                } else {
+                    fileName = bodyPart.getFileName();
+                    if (fileName != null) {
+                        fileName = MimeUtility.decodeText(fileName);
+                        saver.accept(fileName, bodyPart.getInputStream());
+                    }
+                }
+            }
+        }
     }
 
     /**
