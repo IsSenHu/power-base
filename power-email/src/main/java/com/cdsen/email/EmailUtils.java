@@ -21,19 +21,26 @@ import java.util.stream.Collectors;
  * create on 2019/10/30 14:26
  */
 @Slf4j
+@SuppressWarnings("ALL")
 public class EmailUtils {
 
-    private static final String IMAP = "imap";
-    private static final String INBOX = "INBOX";
+    private static final String TEXT = "text/plain";
+    private static final String HTML = "text/html";
+    private static final String MULTIPART = "multipart/*";
+    private static final String RFC822 = "message/rfc822";
+
+    private static final String NAME = "name";
+    private static final String APPLICATION = "application";
+
+    private static final String DISPOSITION_NOTIFICATION_TO = "Disposition-Notification-To";
 
     /**
-     * 获取所有的邮件
+     * 读取并操作所有的邮件
      *
-     * @param host     Host
-     * @param username 用户名
-     * @param password 密码
+     * @param token    安全认证
+     * @param consumer 后续邮件处理函数
      */
-    public static void getMessages(String host, String username, String password, Consumer<List<MimeMessage>> consumer) {
+    public static void readMessages(EmailAuthToken token, Consumer<List<MimeMessage>> consumer) {
         Properties properties = new Properties();
         Session session = Session.getDefaultInstance(properties);
         session.setDebug(false);
@@ -41,9 +48,9 @@ public class EmailUtils {
         Store store = null;
         Folder folder = null;
         try {
-            store = session.getStore(IMAP);
-            store.connect(host, username, password);
-            folder = store.getFolder(INBOX);
+            store = session.getStore(token.getProtocol());
+            store.connect(token.getHost(), token.getUsername(), token.getPassword());
+            folder = store.getFolder(token.getFolder());
             Assert.notNull(folder, "folder is null");
 
             folder.open(Folder.READ_ONLY);
@@ -51,7 +58,7 @@ public class EmailUtils {
             List<MimeMessage> collect = Arrays.stream(messages).map(m -> (MimeMessage) m).collect(Collectors.toList());
             consumer.accept(collect);
         } catch (Exception e) {
-            log.error("获取所有邮件失败:", e);
+            log.error("read email has occur error:", e);
         } finally {
             try {
                 if (folder != null) {
@@ -98,26 +105,9 @@ public class EmailUtils {
      * @param type    收件人类型
      * @return 地址和姓名
      */
-    public static String getMailAddress(MimeMessage message, String type) throws Exception {
+    public static String getMailAddress(MimeMessage message, Message.RecipientType type) throws Exception {
         StringBuilder mailAddr = new StringBuilder();
-        String addType = type.toUpperCase();
-        InternetAddress[] addresses;
-        switch (addType) {
-            case "TO": {
-                addresses = (InternetAddress[]) message.getRecipients(Message.RecipientType.TO);
-                break;
-            }
-            case "CC": {
-                addresses = (InternetAddress[]) message.getRecipients(Message.RecipientType.CC);
-                break;
-            }
-            case "BCC": {
-                addresses = (InternetAddress[]) message.getRecipients(Message.RecipientType.BCC);
-                break;
-            }
-            default:
-                throw new IllegalArgumentException("error type");
-        }
+        InternetAddress[] addresses = (InternetAddress[]) message.getRecipients(type);
         if (addresses != null) {
             for (InternetAddress address : addresses) {
                 String email = address.getAddress();
@@ -144,26 +134,26 @@ public class EmailUtils {
     }
 
     /**
-     * 解析邮件
+     * 读取邮件内容
      *
      * @param part Part
      * @throws Exception Exception
      */
-    public static void getMailContent(Part part, StringBuilder builder) throws Exception {
+    public static void readMailContent(Part part, StringBuilder builder) throws Exception {
         String contentType = part.getContentType();
-        boolean containsName = contentType.contains("name");
-        if (part.isMimeType("text/plain") && !containsName) {
+        boolean containsName = contentType.contains(NAME);
+        if (part.isMimeType(TEXT) && !containsName) {
             builder.append(part.getContent());
-        } else if (part.isMimeType("text/html") && !containsName) {
+        } else if (part.isMimeType(HTML) && !containsName) {
             builder.append(part.getContent());
-        } else if (part.isMimeType("multipart/*")) {
+        } else if (part.isMimeType(MULTIPART)) {
             Multipart multipart = (Multipart) part.getContent();
             int count = multipart.getCount();
             for (int i = 0; i < count; i++) {
-                getMailContent(multipart.getBodyPart(i), builder);
+                readMailContent(multipart.getBodyPart(i), builder);
             }
-        } else if (part.isMimeType("message/rfc822")) {
-            getMailContent((Part) part.getContent(), builder);
+        } else if (part.isMimeType(RFC822)) {
+            readMailContent((Part) part.getContent(), builder);
         }
     }
 
@@ -176,7 +166,7 @@ public class EmailUtils {
      */
     public static boolean getReplySign(MimeMessage message) throws Exception {
         boolean replySign = false;
-        String[] needReply = message.getHeader("Disposition-Notification-To");
+        String[] needReply = message.getHeader(DISPOSITION_NOTIFICATION_TO);
         if (needReply != null) {
             replySign = true;
         }
@@ -222,7 +212,7 @@ public class EmailUtils {
      */
     public static void saveAttachment(Part part, BiConsumer<String, InputStream> saver) throws Exception {
         String fileName;
-        if (part.isMimeType("multipart/*")) {
+        if (part.isMimeType(MULTIPART)) {
             Multipart multipart = (Multipart) part.getContent();
             for (int i = 0; i < multipart.getCount(); i++) {
                 BodyPart bodyPart = multipart.getBodyPart(i);
@@ -230,7 +220,7 @@ public class EmailUtils {
                 if (disposition != null && (disposition.equals(Part.ATTACHMENT) || disposition.equals(Part.INLINE))) {
                     fileName = MimeUtility.decodeText(bodyPart.getFileName());
                     saver.accept(fileName, bodyPart.getInputStream());
-                } else if (bodyPart.isMimeType("multipart/*")) {
+                } else if (bodyPart.isMimeType(MULTIPART)) {
                     saveAttachment(bodyPart, saver);
                 } else {
                     fileName = bodyPart.getFileName();
@@ -251,23 +241,23 @@ public class EmailUtils {
      */
     public static boolean isContainAttach(Part part) throws Exception {
         boolean attachFlag = false;
-        if (part.isMimeType("multipart/*")) {
+        if (part.isMimeType(MULTIPART)) {
             Multipart mp = (Multipart) part.getContent();
             for (int i = 0; i < mp.getCount(); i++) {
                 BodyPart bodyPart = mp.getBodyPart(i);
                 String disposition = bodyPart.getDisposition();
                 if (disposition != null && (disposition.equals(Part.ATTACHMENT) || disposition.equals(Part.INLINE))) {
                     attachFlag = true;
-                } else if (bodyPart.isMimeType("multipart/*")) {
+                } else if (bodyPart.isMimeType(MULTIPART)) {
                     attachFlag = isContainAttach(bodyPart);
                 } else {
                     String type = bodyPart.getContentType();
-                    if (type.toLowerCase().contains("application") || type.toLowerCase().contains("name")) {
+                    if (type.toLowerCase().contains(APPLICATION) || type.toLowerCase().contains(NAME)) {
                         attachFlag = true;
                     }
                 }
             }
-        } else if (part.isMimeType("message/rfc822")) {
+        } else if (part.isMimeType(RFC822)) {
             attachFlag = isContainAttach((Part) part.getContent());
         }
         return attachFlag;
