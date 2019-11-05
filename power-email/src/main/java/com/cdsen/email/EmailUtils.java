@@ -2,6 +2,7 @@ package com.cdsen.email;
 
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.util.Assert;
+import org.springframework.util.StringUtils;
 
 import javax.mail.*;
 import javax.mail.internet.InternetAddress;
@@ -246,7 +247,7 @@ public class EmailUtils {
             for (int i = 0; i < mp.getCount(); i++) {
                 BodyPart bodyPart = mp.getBodyPart(i);
                 String disposition = bodyPart.getDisposition();
-                if (disposition != null && (disposition.equals(Part.ATTACHMENT) || disposition.equals(Part.INLINE))) {
+                if (StringUtils.hasText(disposition) && (disposition.equals(Part.ATTACHMENT) || disposition.equals(Part.INLINE))) {
                     attachFlag = true;
                 } else if (bodyPart.isMimeType(MULTIPART)) {
                     attachFlag = isContainAttach(bodyPart);
