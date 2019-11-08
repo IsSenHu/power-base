@@ -4,6 +4,7 @@ package com.cdsen.email;
  * @author HuSen
  * create on 2019/11/7 10:44
  */
+@SuppressWarnings("ALL")
 public class Constant {
 
     public static final String HEADER_FROM = "From";
@@ -17,4 +18,7 @@ public class Constant {
 
     public static final String NAME = "name";
     public static final String APPLICATION = "application";
+
+    public static final String LEFT_TAG_SIGN = "<";
+    public static final String RIGHT_TAG_SIGN = ">";
 }
