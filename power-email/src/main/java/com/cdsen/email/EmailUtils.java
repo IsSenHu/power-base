@@ -30,6 +30,9 @@ public class EmailUtils {
     private static final String MULTIPART = "multipart/*";
     private static final String RFC822 = "message/rfc822";
 
+    public static final String CONTENT_RES_SIGN = "cid:";
+    public static final String CONTENT_FOXMAIL_SIGN = "cid:_Foxmail";
+
     private static final String NAME = "name";
     private static final String APPLICATION = "application";
 
@@ -42,7 +45,9 @@ public class EmailUtils {
      * @param consumer 后续邮件处理函数
      */
     public static void readMessages(EmailAuthToken token, Consumer<List<MimeMessage>> consumer) {
-        Properties properties = new Properties();
+        Properties properties = System.getProperties();
+        properties.setProperty("mail.store.protocol", "imap");
+        properties.setProperty("mail.imap.partialfetch", "false");
         Session session = Session.getDefaultInstance(properties);
         session.setDebug(false);
 
