@@ -268,4 +268,15 @@ public class EmailUtils {
         }
         return attachFlag;
     }
+
+    public static boolean isCidImgAndReplace(String text) {
+        if (StringUtils.isEmpty(text)) {
+            return false;
+        }
+        return text.contains("<img src=\"cid:");
+    }
+
+    public static String replaceLocalPathByImgCid(String content,String fileName,String filePath) {
+        return content.replace("<img src=" + "\"" + fileName + "\"","<img src=\"file://" + filePath+"\"").toString();
+    }
 }

@@ -203,7 +203,7 @@ public class EmailParser implements Serializable {
         return mimeMessage.getFlags().contains(Flags.Flag.SEEN);
     }
 
-    public boolean isStart() throws MessagingException {
+    public boolean isStar() throws MessagingException {
         return mimeMessage.getFlags().contains(Flags.Flag.FLAGGED);
     }
 
@@ -264,7 +264,7 @@ public class EmailParser implements Serializable {
                         if (StringUtils.hasText(cid)) {
                             cidList.add(cid);
                         }
-                        log.info("Cid={}", cid);
+                        log.info("fileName={}, Cid={}", fileName, cid);
                     }
                 }
             }
