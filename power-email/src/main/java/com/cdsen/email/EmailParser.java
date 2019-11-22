@@ -242,8 +242,8 @@ public class EmailParser implements Serializable {
             for (int i = 0; i < count; i++) {
                 BodyPart bodyPart = mp.getBodyPart(i);
                 String disposition = bodyPart.getDisposition();
-                boolean judge = disposition != null && (disposition.equalsIgnoreCase(Part.ATTACHMENT) || disposition.equalsIgnoreCase(Part.INLINE));
-                if (judge) {
+                boolean attachmentOrInline = disposition != null && (disposition.equalsIgnoreCase(Part.ATTACHMENT) || disposition.equalsIgnoreCase(Part.INLINE));
+                if (attachmentOrInline) {
                     fileName = bodyPart.getFileName();
                     if (fileName != null) {
                         fileName = MimeUtility.decodeText(fileName);
