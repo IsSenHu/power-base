@@ -14,10 +14,12 @@ import javax.mail.internet.MimeUtility;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
+import java.io.UnsupportedEncodingException;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
+import java.util.function.BiConsumer;
 
 /**
  * 邮件解析类
@@ -35,11 +37,6 @@ public class EmailParser implements Serializable {
     private StringBuilder mailTextContent = new StringBuilder();
     private StringBuilder mailHtmlContent = new StringBuilder();
 
-    private List<String> attachments = new ArrayList<>();
-    private List<InputStream> attachmentsInputStreams = new ArrayList<>();
-    private List<Long> attachSizeList = new ArrayList<>();
-    private List<String> cidList = new ArrayList<>();
-
     public EmailParser(String uid, MimeMessage mimeMessage) {
         this.uid = uid;
         this.mimeMessage = mimeMessage;
@@ -49,8 +46,8 @@ public class EmailParser implements Serializable {
      * @return 邮件标题
      * @throws MessagingException 异常
      */
-    public String getSubject() throws MessagingException {
-        return mimeMessage.getSubject();
+    public String getSubject() throws MessagingException, UnsupportedEncodingException {
+        return MimeUtility.decodeText(mimeMessage.getSubject());
     }
 
     /**
@@ -221,10 +218,6 @@ public class EmailParser implements Serializable {
         mc.addMailcap("message/rfc822;; x-java-content-handler=com.sun.mail.handlers.message_rfc822");
         CommandMap.setDefaultCommandMap(mc);
 
-        resetList();
-
-        saveAttachment(mimeMessage);
-
         parserMailContent(mimeMessage);
 
         String content = mailTextContent.append(mailHtmlContent).toString();
@@ -234,7 +227,18 @@ public class EmailParser implements Serializable {
         return content;
     }
 
-    private void saveAttachment(Part part) throws IOException, MessagingException {
+    /**
+     * 读取并保存附件
+     *
+     * @param attachmentSaver 附件保存函数
+     * @throws IOException        IOException
+     * @throws MessagingException MessagingException
+     */
+    public void readAndSaveAttachment(BiConsumer<String, InputStream> attachmentSaver) throws IOException, MessagingException {
+        saveAttachment(mimeMessage, attachmentSaver);
+    }
+
+    private void saveAttachment(Part part, BiConsumer<String, InputStream> saver) throws IOException, MessagingException {
         String fileName;
         if (part.isMimeType(Constant.MULTIPART)) {
             Multipart mp = (Multipart) part.getContent();
@@ -247,36 +251,24 @@ public class EmailParser implements Serializable {
                     fileName = bodyPart.getFileName();
                     if (fileName != null) {
                         fileName = MimeUtility.decodeText(fileName);
-                        attachments.add(fileName);
-                        attachmentsInputStreams.add(bodyPart.getInputStream());
-                        attachSizeList.add((long) bodyPart.getSize());
+                        saver.accept(fileName, bodyPart.getInputStream());
                     }
                 } else if (bodyPart.isMimeType(Constant.MULTIPART)) {
-                    saveAttachment(bodyPart);
+                    saveAttachment(bodyPart, saver);
                 } else {
                     fileName = bodyPart.getFileName();
                     if (fileName != null) {
                         fileName = MimeUtility.decodeText(fileName);
-                        attachments.add(fileName);
-                        attachmentsInputStreams.add(bodyPart.getInputStream());
-                        attachSizeList.add((long) bodyPart.getSize());
                         String cid = getCid(bodyPart);
                         if (StringUtils.hasText(cid)) {
-                            cidList.add(cid);
+                            log.info("fileName={}, Cid={}", fileName, cid);
+                            saver.accept(cid, bodyPart.getInputStream());
                         }
-                        log.info("fileName={}, Cid={}", fileName, cid);
                     }
                 }
             }
         } else if (part.isMimeType(Constant.RFC822)) {
-            saveAttachment((Part) part.getContent());
+            saveAttachment((Part) part.getContent(), saver);
         }
-    }
-
-    private void resetList() {
-        attachments.clear();
-        attachmentsInputStreams.clear();
-        attachSizeList.clear();
-        cidList.clear();
     }
 }
