@@ -21,4 +21,10 @@ public class Constant {
 
     public static final String LEFT_TAG_SIGN = "<";
     public static final String RIGHT_TAG_SIGN = ">";
+
+    public static final String JPG = ".jpg";
+    public static final String PNG = ".png";
+
+    public static final String SRC_CID_PREFIXX = "src=\"cid:";
+    public static final String CID_SIGN = "cid:";
 }

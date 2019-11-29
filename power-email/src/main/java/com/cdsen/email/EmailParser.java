@@ -15,9 +15,7 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.io.Serializable;
 import java.io.UnsupportedEncodingException;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 import java.util.Objects;
 import java.util.function.BiConsumer;
 
@@ -37,7 +35,7 @@ public class EmailParser implements Serializable {
     private StringBuilder mailTextContent = new StringBuilder();
     private StringBuilder mailHtmlContent = new StringBuilder();
 
-    public EmailParser(String uid, MimeMessage mimeMessage) {
+    EmailParser(String uid, MimeMessage mimeMessage) {
         this.uid = uid;
         this.mimeMessage = mimeMessage;
     }
@@ -220,10 +218,14 @@ public class EmailParser implements Serializable {
 
         parserMailContent(mimeMessage);
 
-        String content = mailTextContent.append(mailHtmlContent).toString();
+        String content;
+        if (html) {
+            content = mailHtmlContent.toString();
+        } else {
+            content = mailTextContent.append(mailHtmlContent).toString();
+        }
         mailTextContent.setLength(0);
         mailTextContent.setLength(0);
-
         return content;
     }
 
@@ -262,7 +264,14 @@ public class EmailParser implements Serializable {
                         String cid = getCid(bodyPart);
                         if (StringUtils.hasText(cid)) {
                             log.info("fileName={}, Cid={}", fileName, cid);
-                            saver.accept(cid, bodyPart.getInputStream());
+                            if (cid.endsWith(Constant.JPG) || cid.endsWith(Constant.PNG)) {
+                                saver.accept(cid, bodyPart.getInputStream());
+                            } else if (fileName.endsWith(Constant.JPG) || fileName.endsWith(Constant.PNG)) {
+                                int lastIndexOf = fileName.lastIndexOf(".");
+                                saver.accept(cid.concat(fileName.substring(lastIndexOf)), bodyPart.getInputStream());
+                            } else {
+                                saver.accept(cid, bodyPart.getInputStream());
+                            }
                         }
                     }
                 }
